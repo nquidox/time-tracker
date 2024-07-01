@@ -43,7 +43,7 @@ func (u *User) ReadOne() error {
 	return nil
 }
 
-func (u *User) ReadMany(filters map[string]interface{}) ([]User, error) {
+func (u *User) ReadMany(filters map[string]interface{}, params map[string]int) ([]User, error) {
 	var users []User
 
 	query := DB.Model(&User{})
@@ -51,6 +51,10 @@ func (u *User) ReadMany(filters map[string]interface{}) ([]User, error) {
 	for k, v := range filters {
 		query = query.Where(fmt.Sprintf("%s = ?", k), v)
 	}
+
+	query = query.
+		Offset((params["page"] - 1) * params["per_page"]).
+		Limit(params["per_page"])
 
 	err := query.Find(&users).Error
 	if err != nil {

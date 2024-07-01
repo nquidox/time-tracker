@@ -89,9 +89,10 @@ func ReadManyHandler(w http.ResponseWriter, r *http.Request) {
 	var e service.ErrorResponse
 	queryParams := r.URL.Query()
 	filters := filtersMap(queryParams)
+	params := paginationParams(queryParams)
 
 	var usr User
-	users, err := usr.ReadMany(filters)
+	users, err := usr.ReadMany(filters, params)
 	if err != nil {
 		e.DBError(err)
 		service.ServerResponse(w, e)

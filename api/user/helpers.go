@@ -86,3 +86,29 @@ func filtersMap(queryParams url.Values) map[string]interface{} {
 
 	return filters
 }
+
+func paginationParams(queryParams url.Values) map[string]int {
+	params := make(map[string]int)
+	perPage := queryParams.Get("perPage")
+	if perPage != "" {
+		p, err := strconv.Atoi(perPage)
+		if err != nil {
+			params["per_page"] = 10
+		}
+		params["per_page"] = p
+	} else {
+		params["per_page"] = 10
+	}
+
+	page := queryParams.Get("page")
+	if page != "" {
+		p, err := strconv.Atoi(page)
+		if err != nil {
+			params["page"] = 1
+		}
+		params["page"] = p
+	} else {
+		params["page"] = 1
+	}
+	return params
+}
