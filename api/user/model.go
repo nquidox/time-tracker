@@ -24,7 +24,6 @@ type NewUser struct {
 
 func (u *User) Create() error {
 	var err error
-	u.UserId = uuid.New()
 
 	err = DB.Create(u).Error
 	if err != nil {

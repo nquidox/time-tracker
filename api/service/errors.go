@@ -24,7 +24,7 @@ func (e *ErrorResponse) UuidParseError(err error) {
 
 func (e *ErrorResponse) ReadBodyError(err error) {
 	e.Code = http.StatusBadRequest
-	e.Message = "ReadMany body error: " + err.Error()
+	e.Message = "Read body error: " + err.Error()
 }
 
 func (e *ErrorResponse) DeserializeError(err error) {

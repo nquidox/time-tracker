@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time_tracker/api/task"
 	"time_tracker/api/user"
 )
 
@@ -24,6 +25,7 @@ func (a *ApiServer) Run() error {
 	})
 
 	user.AddRoutes(router)
+	task.AddRoutes(router)
 
 	log.Printf("Starting server on %s", a.Addr)
 	return server.ListenAndServe()

@@ -18,6 +18,7 @@ func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 		service.ServerResponse(w, e)
 		return
 	}
+	defer r.Body.Close()
 
 	newUsr := NewUser{}
 	err = service.DeserializeJSON(data, &newUsr)
@@ -51,8 +52,8 @@ func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	service.ServerResponse(w, service.OkResponse{
-		Code:    200,
-		Message: "Ok",
+		Code:    http.StatusOK,
+		Message: "User created successfully",
 		Data:    usr.UserId,
 	})
 }
@@ -87,6 +88,7 @@ func ReadUserByIDHandler(w http.ResponseWriter, r *http.Request) {
 func ReadManyHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var e service.ErrorResponse
+
 	queryParams := r.URL.Query()
 	filters := filtersMap(queryParams)
 	params := paginationParams(queryParams)
@@ -99,12 +101,7 @@ func ReadManyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = json.NewEncoder(w).Encode(users)
-	if err != nil {
-		e.SerializeError(err)
-		service.ServerResponse(w, e)
-		return
-	}
+	service.ServerResponse(w, users)
 }
 
 func UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
@@ -126,6 +123,7 @@ func UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 		service.ServerResponse(w, e)
 		return
 	}
+	defer r.Body.Close()
 
 	err = service.DeserializeJSON(data, &usr)
 	if err != nil {
