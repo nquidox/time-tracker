@@ -10,6 +10,7 @@ import (
 
 func main() {
 	c := config.New()
+	user.ExternalAPIURL = c.Config.ExternalAPIURL
 
 	DB := db.Connect(c)
 	user.Init(DB)

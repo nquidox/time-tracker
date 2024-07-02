@@ -61,3 +61,8 @@ func (e *ErrorResponse) TaskIsAlreadyFinishedError() {
 	e.Code = http.StatusBadRequest
 	e.Message = "Task is already finished."
 }
+
+func (e *ErrorResponse) ExternalAPIError(err error) {
+	e.Code = http.StatusInternalServerError
+	e.Message = "External API Error: " + err.Error()
+}

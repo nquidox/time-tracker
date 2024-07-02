@@ -28,7 +28,22 @@ func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s, n, err := validatePassportNumber(newUsr.PassportNumber)
+	serie, number, err := validatePassportNumber(newUsr.PassportNumber)
+	if err != nil {
+		e.ValidationError(err)
+		service.ServerResponse(w, e)
+		return
+	}
+
+	var extUser ExternalUser
+	err = extUser.GetExternalData(serie, number)
+	if err != nil {
+		e.ExternalAPIError(err)
+		service.ServerResponse(w, e)
+		return
+	}
+
+	err = extUser.ValidateRequiredFields()
 	if err != nil {
 		e.ValidationError(err)
 		service.ServerResponse(w, e)
@@ -36,12 +51,12 @@ func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	usr := User{
-		PassportSerie:  s,
-		PassportNumber: n,
-		Name:           "request from external api",
-		Surname:        "request from external api",
-		Patronymic:     "request from external api",
-		Address:        "request from external api",
+		PassportSerie:  serie,
+		PassportNumber: number,
+		Name:           extUser.Name,
+		Surname:        extUser.Surname,
+		Patronymic:     extUser.Patronymic,
+		Address:        extUser.Address,
 		UserId:         uuid.New(),
 	}
 
