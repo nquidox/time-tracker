@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"time_tracker/api/task"
 	"time_tracker/api/user"
@@ -21,13 +21,13 @@ func (a *ApiServer) Run() error {
 	server := &http.Server{Addr: a.Addr, Handler: corsMiddleware(router)}
 
 	router.HandleFunc("GET /api/v1", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, "API v1 is ready.")
+		fmt.Fprint(w, "API is ready.")
 	})
 
 	user.AddRoutes(router)
 	task.AddRoutes(router)
 
-	log.Printf("Starting server on %s", a.Addr)
+	log.Info("Starting server on ", a.Addr)
 	return server.ListenAndServe()
 }
 

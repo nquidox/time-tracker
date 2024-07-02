@@ -2,7 +2,7 @@ package config
 
 import (
 	"github.com/joho/godotenv"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"os"
 )
 
@@ -16,6 +16,8 @@ type EnvFileConfig struct {
 	HTTPHost       string
 	HTTPPort       string
 	ExternalAPIURL string
+	AppLogLevel    string
+	DBLogLevel     string
 }
 
 type Config struct {
@@ -37,6 +39,8 @@ func New() *Config {
 		HTTPHost:       getEnv("HTTP_HOST"),
 		HTTPPort:       getEnv("HTTP_PORT"),
 		ExternalAPIURL: getEnv("EXTERNAL_API_URL"),
+		AppLogLevel:    getEnv("APP_LOG_LEVEL"),
+		DBLogLevel:     getEnv("DB_LOG_LEVEL"),
 	}}
 }
 

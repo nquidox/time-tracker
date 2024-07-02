@@ -3,6 +3,7 @@ package task
 import (
 	"fmt"
 	"github.com/google/uuid"
+	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"sort"
@@ -14,6 +15,8 @@ import (
 func CreateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var e service.ErrorResponse
+
+	log.Info(r.Method, " ", r.URL.Path, " ", r.RemoteAddr, " ", r.UserAgent())
 
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -46,16 +49,21 @@ func CreateTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	msg := "Task created successfully"
+
 	service.ServerResponse(w, service.OkResponse{
 		Code:    http.StatusOK,
-		Message: "Task created successfully",
+		Message: msg,
 		Data:    tsk.TaskId,
 	})
+	log.Info(msg)
 }
 
 func ReadOneTaskHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var e service.ErrorResponse
+
+	log.Info(r.Method, " ", r.URL.Path, " ", r.RemoteAddr, " ", r.UserAgent())
 
 	taskId, err := uuid.Parse(r.PathValue("uuid"))
 	if err != nil {
@@ -73,11 +81,14 @@ func ReadOneTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	service.ServerResponse(w, tsk)
+	log.Info("Read one successfully")
 }
 
 func ReadManyTaskHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var e service.ErrorResponse
+
+	log.Info(r.Method, " ", r.URL.Path, " ", r.RemoteAddr, " ", r.UserAgent())
 
 	queryParams := r.URL.Query()
 	filters := filtersMap(queryParams)
@@ -94,6 +105,7 @@ func ReadManyTaskHandler(w http.ResponseWriter, r *http.Request) {
 	// для простоты выборка задач для расчета трудозатрат будет производиться по полю finish_at
 	// если требуется также учитывать промежуточное состояние, когда задача начата,
 	// но еще не закончена на текущий момент, то желателен механизм паузы
+	// перенести потом в ридми
 	tasks, err := tsk.ReadMany(filters)
 	if err != nil {
 		e.ReadBodyError(err)
@@ -141,11 +153,14 @@ func ReadManyTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	service.ServerResponse(w, response)
+	log.Info("Read many successfully")
 }
 
 func UpdateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var e service.ErrorResponse
+
+	log.Info(r.Method, " ", r.URL.Path, " ", r.RemoteAddr, " ", r.UserAgent())
 
 	taskId, err := uuid.Parse(r.PathValue("uuid"))
 	if err != nil {
@@ -185,16 +200,21 @@ func UpdateTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	msg := "Task updated successfully"
+
 	service.ServerResponse(w, service.OkResponse{
 		Code:    http.StatusOK,
-		Message: "Task updated successfully",
+		Message: msg,
 		Data:    "",
 	})
+	log.Info(msg)
 }
 
 func DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var e service.ErrorResponse
+
+	log.Info(r.Method, " ", r.URL.Path, " ", r.RemoteAddr, " ", r.UserAgent())
 
 	taskId, err := uuid.Parse(r.PathValue("uuid"))
 	if err != nil {
@@ -212,16 +232,21 @@ func DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	msg := "Task deleted successfully"
+
 	service.ServerResponse(w, service.OkResponse{
 		Code:    http.StatusOK,
-		Message: "Task deleted successfully",
+		Message: msg,
 		Data:    "",
 	})
+	log.Info(msg)
 }
 
 func StartTaskHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var e service.ErrorResponse
+
+	log.Info(r.Method, " ", r.URL.Path, " ", r.RemoteAddr, " ", r.UserAgent())
 
 	taskId, err := uuid.Parse(r.PathValue("uuid"))
 	if err != nil {
@@ -253,16 +278,21 @@ func StartTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	msg := "Task started successfully"
+
 	service.ServerResponse(w, service.OkResponse{
 		Code:    http.StatusOK,
-		Message: "Task started successfully",
+		Message: msg,
 		Data:    fmt.Sprintf("Started at: %s", tsk.StartAt.Format("15:04:05 02-01-2006")),
 	})
+	log.Info(msg)
 }
 
 func FinishTaskHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var e service.ErrorResponse
+
+	log.Info(r.Method, " ", r.URL.Path, " ", r.RemoteAddr, " ", r.UserAgent())
 
 	taskId, err := uuid.Parse(r.PathValue("uuid"))
 	if err != nil {
@@ -304,9 +334,11 @@ func FinishTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	msg := "Task finished successfully"
+
 	service.ServerResponse(w, service.OkResponse{
 		Code:    http.StatusOK,
-		Message: "Task finished successfully",
+		Message: msg,
 		Data: fmt.Sprintf("Finished at: %s, Duration: %02d:%02d:%02d",
 			tsk.FinishAt.Format("15:04:05 02-01-2006"),
 			int(tsk.Duration.Hours()),
@@ -314,4 +346,5 @@ func FinishTaskHandler(w http.ResponseWriter, r *http.Request) {
 			int(tsk.Duration.Seconds())%60,
 		),
 	})
+	log.Info(msg)
 }

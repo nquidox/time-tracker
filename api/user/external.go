@@ -3,6 +3,7 @@ package user
 import (
 	"errors"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"time_tracker/api/service"
@@ -18,20 +19,19 @@ type ExternalUser struct {
 var ExternalAPIURL string
 
 func (e *ExternalUser) GetExternalData(passportSerie, passportNumber int) error {
-	fmt.Printf("%s/info?passportSerie=%04d&passportNumber=%06d\n",
+	link := fmt.Sprintf("%s/info?passportSerie=%04d&passportNumber=%06d",
 		ExternalAPIURL, passportSerie, passportNumber)
 
-	response, err := http.Get(fmt.Sprintf("%s/info?passportSerie=%04d&passportNumber=%06d",
-		ExternalAPIURL, passportSerie, passportNumber))
+	log.WithField("Link", link).Debug("Retrieving external user data")
+
+	response, err := http.Get(link)
 	if err != nil {
 		return err
 	}
 	defer response.Body.Close()
 
-	fmt.Println("response Status:", response.Status)
-
 	if response.StatusCode != http.StatusOK {
-		return errors.New(response.Status)
+		return fmt.Errorf("External user data retrieval error: %s", response.Status)
 	}
 
 	data, err := io.ReadAll(response.Body)
@@ -49,15 +49,21 @@ func (e *ExternalUser) GetExternalData(passportSerie, passportNumber int) error 
 
 func (e *ExternalUser) ValidateRequiredFields() error {
 	if len(e.Name) == 0 {
-		return errors.New("name field can't be empty")
+		msg := "name field can't be empty"
+		log.Error(msg)
+		return errors.New(msg)
 	}
 
 	if len(e.Surname) == 0 {
-		return errors.New("surname field can't be empty")
+		msg := "surname field can't be empty"
+		log.Error(msg)
+		return errors.New(msg)
 	}
 
 	if len(e.Address) == 0 {
-		return errors.New("address field can't be empty")
+		msg := "address field can't be empty"
+		log.Error(msg)
+		return errors.New(msg)
 	}
 
 	return nil
