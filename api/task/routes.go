@@ -5,7 +5,10 @@ import "net/http"
 func AddRoutes(router *http.ServeMux) {
 	router.HandleFunc("POST /api/v1/task", CreateTaskHandler)
 	router.HandleFunc("GET /api/v1/task/{uuid}", ReadOneTaskHandler)
-	router.HandleFunc("GET /api/v1/task", ReadManyTaskHandler)
+
+	//вместо проверки авторизации просто запрашиваем id пользователя
+	router.HandleFunc("GET /api/v1/task/summary/{user_uuid}", ReadManyTaskHandler)
+
 	router.HandleFunc("PUT /api/v1/task/{uuid}", UpdateTaskHandler)
 	router.HandleFunc("DELETE /api/v1/task/{uuid}", DeleteTaskHandler)
 	router.HandleFunc("GET /api/v1/task/start/{uuid}", StartTaskHandler)

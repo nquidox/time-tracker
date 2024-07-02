@@ -5,8 +5,10 @@ import (
 	"github.com/google/uuid"
 	"io"
 	"net/http"
+	"sort"
 	"time"
 	"time_tracker/api/service"
+	"time_tracker/api/user"
 )
 
 func CreateTaskHandler(w http.ResponseWriter, r *http.Request) {
@@ -75,19 +77,70 @@ func ReadOneTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 func ReadManyTaskHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-
 	var e service.ErrorResponse
-	var task Task
 
-	tasks, err := task.ReadMany()
+	queryParams := r.URL.Query()
+	filters := filtersMap(queryParams)
+
+	userId, err := uuid.Parse(r.PathValue("user_uuid"))
+	if err != nil {
+		e.UuidParseError(err)
+		service.ServerResponse(w, e)
+		return
+	}
+
+	tsk := Task{OwnerId: userId}
+
+	// для простоты выборка задач для расчета трудозатрат будет производиться по полю finish_at
+	// если требуется также учитывать промежуточное состояние, когда задача начата,
+	// но еще не закончена на текущий момент, то желателен механизм паузы
+	tasks, err := tsk.ReadMany(filters)
 	if err != nil {
 		e.ReadBodyError(err)
 		service.ServerResponse(w, e)
 		return
 	}
 
-	//TODO add user auth and sort response by duration
-	service.ServerResponse(w, tasks)
+	sort.Slice(tasks, func(i, j int) bool {
+		return tasks[i].Duration > tasks[j].Duration
+	})
+
+	sumDuration := time.Duration(0)
+	for _, t := range tasks {
+		sumDuration += t.Duration
+	}
+
+	var outputList []OutputTask
+	for _, tsk := range tasks {
+		outputList = append(outputList, OutputTask{
+			Title:   tsk.Title,
+			Content: tsk.Content,
+			Duration: fmt.Sprintf("%02d:%02d:%02d",
+				int(tsk.Duration.Hours()),
+				int(tsk.Duration.Minutes())%60,
+				int(tsk.Duration.Seconds())%60),
+		})
+	}
+
+	usr := user.User{UserId: userId}
+	err = usr.ReadOne()
+	if err != nil {
+		e.DBError(err)
+		service.ServerResponse(w, e)
+		return
+	}
+
+	response := Summary{
+		Name:    usr.Name,
+		Surname: usr.Surname,
+		TasksDuration: fmt.Sprintf("%02d:%02d:%02d",
+			int(sumDuration.Hours()),
+			int(sumDuration.Minutes())%60,
+			int(sumDuration.Seconds())%60),
+		Tasks: outputList,
+	}
+
+	service.ServerResponse(w, response)
 }
 
 func UpdateTaskHandler(w http.ResponseWriter, r *http.Request) {
@@ -109,7 +162,7 @@ func UpdateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	tsk := Task{TaskId: taskId}
+	tsk := UpdateTask{TaskId: taskId}
 
 	err = service.DeserializeJSON(data, &tsk)
 	if err != nil {
@@ -118,7 +171,14 @@ func UpdateTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = tsk.Update()
+	err = tsk.validateOnUpdate()
+	if err != nil {
+		e.ValidationError(err)
+		service.ServerResponse(w, e)
+		return
+	}
+
+	err = tsk.UpdatePart()
 	if err != nil {
 		e.DBError(err)
 		service.ServerResponse(w, e)
@@ -171,9 +231,22 @@ func StartTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tsk := Task{TaskId: taskId}
+	err = tsk.ReadOne()
+	if err != nil {
+		e.DBError(err)
+		service.ServerResponse(w, e)
+		return
+	}
 
-	//TODO check if already started
-	err = tsk.Start()
+	if !tsk.StartAt.IsZero() {
+		e.TaskIsAlreadyStartedError()
+		service.ServerResponse(w, e)
+		return
+	}
+
+	tsk.StartAt = time.Now()
+
+	err = tsk.UpdateFull()
 	if err != nil {
 		e.DBError(err)
 		service.ServerResponse(w, e)
@@ -199,35 +272,32 @@ func FinishTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tsk := Task{TaskId: taskId}
-	zeroTime := time.Time{}
 
-	err = tsk.GetStart()
+	err = tsk.ReadOne()
 	if err != nil {
 		e.DBError(err)
 		service.ServerResponse(w, e)
 		return
 	}
-	//FIXME fix zero time check
-	if tsk.StartAt == zeroTime {
-		service.ServerResponse(w, service.ErrorResponse{
-			Code:    400,
-			Message: "Task not started",
-		})
+
+	fmt.Println(tsk.StartAt, tsk.StartAt.IsZero())
+
+	if tsk.StartAt.IsZero() {
+		e.TaskNotStartedError()
+		service.ServerResponse(w, e)
 		return
 	}
 
-	if tsk.FinishAt != zeroTime {
-		service.ServerResponse(w, service.ErrorResponse{
-			Code:    400,
-			Message: "Task is already finished",
-		})
+	if !tsk.FinishAt.IsZero() {
+		e.TaskIsAlreadyFinishedError()
+		service.ServerResponse(w, e)
 		return
 	}
 
 	tsk.FinishAt = time.Now()
 	tsk.Duration = tsk.FinishAt.Sub(tsk.StartAt)
 
-	err = tsk.Finish()
+	err = tsk.UpdateFull()
 	if err != nil {
 		e.DBError(err)
 		service.ServerResponse(w, e)
@@ -237,6 +307,11 @@ func FinishTaskHandler(w http.ResponseWriter, r *http.Request) {
 	service.ServerResponse(w, service.OkResponse{
 		Code:    http.StatusOK,
 		Message: "Task finished successfully",
-		Data:    fmt.Sprintf("Finished at: %s, Duration: %d", tsk.FinishAt.Format("15:04:05 02-01-2006"), tsk.Duration),
+		Data: fmt.Sprintf("Finished at: %s, Duration: %02d:%02d:%02d",
+			tsk.FinishAt.Format("15:04:05 02-01-2006"),
+			int(tsk.Duration.Hours()),
+			int(tsk.Duration.Minutes())%60,
+			int(tsk.Duration.Seconds())%60,
+		),
 	})
 }

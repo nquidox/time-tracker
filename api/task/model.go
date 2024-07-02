@@ -18,6 +18,25 @@ type Task struct {
 	Duration   time.Duration `json:"duration"`
 }
 
+type UpdateTask struct {
+	TaskId  uuid.UUID `json:"-"`
+	Title   string    `json:"title"`
+	Content string    `json:"content"`
+}
+
+type OutputTask struct {
+	Title    string `json:"title"`
+	Content  string `json:"content"`
+	Duration string `json:"duration"`
+}
+
+type Summary struct {
+	Name          string       `json:"name"`
+	Surname       string       `json:"surname"`
+	TasksDuration string       `json:"tasks_duration"`
+	Tasks         []OutputTask `json:"tasks"`
+}
+
 func (t *Task) Create() error {
 	err := DB.Create(t).Error
 	if err != nil {
@@ -34,16 +53,19 @@ func (t *Task) ReadOne() error {
 	return nil
 }
 
-func (t *Task) ReadMany() ([]Task, error) {
+func (t *Task) ReadMany(filters map[string]time.Time) ([]Task, error) {
 	var tasks []Task
-	err := DB.Find(&tasks).Error
+	err := DB.
+		Where("owner_id = ?", t.OwnerId).
+		Where("finish_at BETWEEN ? and ?", filters["start_date"], filters["end_date"]).
+		Find(&tasks).Error
 	if err != nil {
 		return nil, err
 	}
 	return tasks, nil
 }
 
-func (t *Task) Update() error {
+func (t *Task) UpdateFull() error {
 	result := DB.Where("task_id = ?", t.TaskId).Updates(t)
 
 	if result.Error != nil {
@@ -54,6 +76,17 @@ func (t *Task) Update() error {
 		return errors.New("task not found")
 	}
 
+	return nil
+}
+
+func (t *UpdateTask) UpdatePart() error {
+	result := DB.Model(&Task{}).Where("task_id = ?", t.TaskId).Updates(t)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return errors.New("task not found")
+	}
 	return nil
 }
 
@@ -68,30 +101,5 @@ func (t *Task) Delete() error {
 		return errors.New("task not found")
 	}
 
-	return nil
-}
-
-func (t *Task) Start() error {
-	t.StartAt = time.Now()
-	err := t.Update()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (t *Task) GetStart() error {
-	err := t.ReadOne()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (t *Task) Finish() error {
-	err := t.Update()
-	if err != nil {
-		return err
-	}
 	return nil
 }

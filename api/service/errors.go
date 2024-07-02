@@ -46,3 +46,18 @@ func (e *ErrorResponse) DBError(err error) {
 	e.Code = http.StatusInternalServerError
 	e.Message = "Database error: " + err.Error()
 }
+
+func (e *ErrorResponse) TaskNotStartedError() {
+	e.Code = http.StatusBadRequest
+	e.Message = "Task not started."
+}
+
+func (e *ErrorResponse) TaskIsAlreadyStartedError() {
+	e.Code = http.StatusBadRequest
+	e.Message = "Task is already started."
+}
+
+func (e *ErrorResponse) TaskIsAlreadyFinishedError() {
+	e.Code = http.StatusBadRequest
+	e.Message = "Task is already finished."
+}
