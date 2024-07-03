@@ -6,6 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
+	"strconv"
 	"time_tracker/api/service"
 )
 
@@ -17,7 +18,7 @@ import (
 //	@Accept			json
 //	@Produce		json
 //	@Param			New	user		body	NewUser	true	"Provide passport serie and number in format '1234 567890'"
-//	@Success		200	{object}	User
+//	@Success		200	{object}	FullUser
 //	@Failure		400	{object}	service.ErrorResponse
 //	@Failure		500	{object}	service.ErrorResponse
 //	@Router			/user [post]
@@ -50,6 +51,13 @@ func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if exists(serie, number) != uuid.Nil {
+		e.DBExists()
+		service.ServerResponse(w, e)
+		log.Error("User already exists")
+		return
+	}
+
 	var extUser ExternalUser
 	err = extUser.GetExternalData(serie, number)
 	if err != nil {
@@ -65,7 +73,7 @@ func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	usr := User{
+	usr := FullUser{
 		PassportSerie:  serie,
 		PassportNumber: number,
 		Name:           extUser.Name,
@@ -99,7 +107,7 @@ func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 //	@Tags			User
 //	@Produce		json
 //	@Param			uuid	path		string	true	"Provide user's uuid"
-//	@Success		200		{object}	User
+//	@Success		200		{object}	FullUser
 //	@Failure		400		{object}	service.ErrorResponse
 //	@Failure		404		{object}	service.ErrorResponse
 //	@Failure		500		{object}	service.ErrorResponse
@@ -117,10 +125,14 @@ func ReadUserByIDHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	usr := User{UserId: userId}
+	usr := FullUser{UserId: userId}
 	err = usr.ReadOne()
 	if err != nil {
-		e.DBError(err)
+		if err.Error() == "record not found" {
+			e.Error404()
+		} else {
+			e.DBError(err)
+		}
 		service.ServerResponse(w, e)
 		return
 	}
@@ -145,7 +157,7 @@ func ReadUserByIDHandler(w http.ResponseWriter, r *http.Request) {
 //	@Param			page			query		int		false	"Page number"
 //	@Param			perPage			query		int		false	"Records per page"
 //
-//	@Success		200				{object}	User
+//	@Success		200				{object}	FullUser
 //	@Failure		400				{object}	service.ErrorResponse
 //	@Failure		404				{object}	service.ErrorResponse
 //	@Failure		500				{object}	service.ErrorResponse
@@ -160,10 +172,16 @@ func ReadManyHandler(w http.ResponseWriter, r *http.Request) {
 	filters := filtersMap(queryParams)
 	params := paginationParams(queryParams)
 
-	var usr User
+	var usr FullUser
 	users, err := usr.ReadMany(filters, params)
 	if err != nil {
 		e.DBError(err)
+		service.ServerResponse(w, e)
+		return
+	}
+
+	if len(users) == 0 {
+		e.Error404()
 		service.ServerResponse(w, e)
 		return
 	}
@@ -182,8 +200,8 @@ func ReadManyHandler(w http.ResponseWriter, r *http.Request) {
 //	@Tags			User
 //	@Accept			json
 //	@Produce		json
-//	@Param			uuid	path		string	true	"Provide user's uuid"
-//	@Param			User	data		body	User	true	"Partial update possible"
+//	@Param			uuid	path		string	true		"Provide user's uuid"
+//	@Param			User	data		body	FullUser	true	"Passport serie and number are required. Partial update possible, empty fields will be ignored."
 //	@Success		200		{object}	service.OkResponse
 //	@Failure		400		{object}	service.ErrorResponse
 //	@Failure		404		{object}	service.ErrorResponse
@@ -202,7 +220,7 @@ func UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	usr := User{UserId: userId}
+	usr := UpdateUser{UserId: userId}
 
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -215,6 +233,22 @@ func UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 	err = service.DeserializeJSON(data, &usr)
 	if err != nil {
 		e.DeserializeError(err)
+		service.ServerResponse(w, e)
+		return
+	}
+
+	pn := fmt.Sprintf("%s %s", strconv.Itoa(usr.PassportSerie), strconv.Itoa(usr.PassportNumber))
+	_, _, err = validatePassportNumber(pn)
+	if err != nil {
+		e.ValidationError(err)
+		service.ServerResponse(w, e)
+		return
+	}
+
+	id := exists(usr.PassportSerie, usr.PassportNumber)
+	if id != usr.UserId && id != uuid.Nil {
+		log.Error(usr.UserId)
+		e.DBPassportExists()
 		service.ServerResponse(w, e)
 		return
 	}
@@ -261,11 +295,11 @@ func DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	usr := User{UserId: userId}
+	usr := FullUser{UserId: userId}
 
 	err = usr.Delete()
 	if err != nil {
-		e.DBNotFound(err)
+		e.Error404()
 		service.ServerResponse(w, e)
 		return
 	}

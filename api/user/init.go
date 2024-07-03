@@ -9,7 +9,7 @@ var DB *gorm.DB
 
 func Init(d *gorm.DB) {
 	DB = d //passing DB global var
-	err := DB.AutoMigrate(&User{})
+	err := DB.AutoMigrate(&FullUser{})
 	if err != nil {
 		log.Fatal(err)
 	}

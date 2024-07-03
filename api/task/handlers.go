@@ -49,7 +49,11 @@ func CreateTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = tsk.validateNewTask()
 	if err != nil {
-		e.ValidationError(err)
+		if err.Error() == "record not found" {
+			e.DBTaskOwnerNotFound()
+		} else {
+			e.ValidationError(err)
+		}
 		service.ServerResponse(w, e)
 		return
 	}
@@ -99,7 +103,11 @@ func ReadOneTaskHandler(w http.ResponseWriter, r *http.Request) {
 	tsk := FullTask{TaskId: taskId}
 	err = tsk.ReadOne()
 	if err != nil {
-		e.DBError(err)
+		if err.Error() == "record not found" {
+			e.Error404()
+		} else {
+			e.DBError(err)
+		}
 		service.ServerResponse(w, e)
 		return
 	}
@@ -110,16 +118,16 @@ func ReadOneTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 // ReadManyTaskHandler godoc
 //
-//	@Summary		Summary
-//	@Description	Get tasks summary for user
+//	@Summary		Get all tasks
+//	@Description	Get all tasks for user
 //	@Tags			Task
 //	@Produce		json
 //	@Param			user_uuid	path		string	true	"Provide user's uuid"
-//	@Success		200			{object}	Summary
+//	@Success		200			{object}	FullTask
 //	@Failure		400			{object}	service.ErrorResponse
 //	@Failure		404			{object}	service.ErrorResponse
 //	@Failure		500			{object}	service.ErrorResponse
-//	@Router			/task/{user_uuid} [get]
+//	@Router			/tasks/{user_uuid} [get]
 func ReadManyTaskHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var e service.ErrorResponse
@@ -138,10 +146,62 @@ func ReadManyTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 	tsk := FullTask{OwnerId: userId}
 
-	// для простоты выборка задач для расчета трудозатрат будет производиться по полю finish_at
-	// если требуется также учитывать промежуточное состояние, когда задача начата,
-	// но еще не закончена на текущий момент, то желателен механизм паузы
-	// перенести потом в ридми
+	tasks, err := tsk.ReadMany(filters)
+	if err != nil {
+		e.ReadBodyError(err)
+		service.ServerResponse(w, e)
+		return
+	}
+
+	if len(tasks) == 0 {
+		e.Error404()
+		service.ServerResponse(w, e)
+		return
+	}
+
+	service.ServerResponse(w, tasks)
+	log.Info("Read many success")
+}
+
+// SummaryHandler godoc
+//
+//	@Summary		Summary
+//	@Description	Get tasks summary for user. Date format: dd-mm-yyyy
+//	@Tags			Task
+//	@Produce		json
+//	@Param			user_uuid	path		string	true	"Provide user's uuid"
+//	@Param			start_date	query		string	false	"Start of period"
+//	@Param			end_date	query		string	false	"End  of period"
+//	@Success		200			{object}	Summary
+//	@Failure		400			{object}	service.ErrorResponse
+//	@Failure		404			{object}	service.ErrorResponse
+//	@Failure		500			{object}	service.ErrorResponse
+//	@Router			/tasks/summary/{user_uuid}  [get]
+func SummaryHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	var e service.ErrorResponse
+
+	log.Info(r.Method, " ", r.URL.Path, " ", r.RemoteAddr, " ", r.UserAgent())
+
+	queryParams := r.URL.Query()
+	filters := filtersMap(queryParams)
+
+	userId, err := uuid.Parse(r.PathValue("user_uuid"))
+	if err != nil {
+		e.UuidParseError(err)
+		service.ServerResponse(w, e)
+		return
+	}
+
+	err = validateOwner(userId) //check if owner exists
+	if err != nil {
+		e.DBTaskOwnerNotFound()
+		service.ServerResponse(w, e)
+		return
+	}
+
+	tsk := FullTask{OwnerId: userId}
+
 	tasks, err := tsk.ReadMany(filters)
 	if err != nil {
 		e.ReadBodyError(err)
@@ -159,18 +219,18 @@ func ReadManyTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var outputList []OutputTask
-	for _, tsk := range tasks {
+	for _, t := range tasks {
 		outputList = append(outputList, OutputTask{
-			Title:   tsk.Title,
-			Content: tsk.Content,
+			Title:   t.Title,
+			Content: t.Content,
 			Duration: fmt.Sprintf("%02d:%02d:%02d",
-				int(tsk.Duration.Hours()),
-				int(tsk.Duration.Minutes())%60,
-				int(tsk.Duration.Seconds())%60),
+				int(t.Duration.Hours()),
+				int(t.Duration.Minutes())%60,
+				int(t.Duration.Seconds())%60),
 		})
 	}
 
-	usr := user.User{UserId: userId}
+	usr := user.FullUser{UserId: userId}
 	err = usr.ReadOne()
 	if err != nil {
 		e.DBError(err)
@@ -189,7 +249,7 @@ func ReadManyTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	service.ServerResponse(w, response)
-	log.Info("Read many successfully")
+	log.Info("Get summary success")
 }
 
 // UpdateTaskHandler godoc
@@ -245,7 +305,11 @@ func UpdateTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = tsk.UpdatePart()
 	if err != nil {
-		e.DBError(err)
+		if err.Error() == "404" {
+			e.Error404()
+		} else {
+			e.DBError(err)
+		}
 		service.ServerResponse(w, e)
 		return
 	}
@@ -289,7 +353,11 @@ func DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = tsk.Delete()
 	if err != nil {
-		e.DBError(err)
+		if err.Error() == "404" {
+			e.Error404()
+		} else {
+			e.DBError(err)
+		}
 		service.ServerResponse(w, e)
 		return
 	}
@@ -332,7 +400,11 @@ func StartTaskHandler(w http.ResponseWriter, r *http.Request) {
 	tsk := FullTask{TaskId: taskId}
 	err = tsk.ReadOne()
 	if err != nil {
-		e.DBError(err)
+		if err.Error() == "record not found" {
+			e.Error404()
+		} else {
+			e.DBError(err)
+		}
 		service.ServerResponse(w, e)
 		return
 	}
@@ -391,7 +463,11 @@ func FinishTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = tsk.ReadOne()
 	if err != nil {
-		e.DBError(err)
+		if err.Error() == "record not found" {
+			e.Error404()
+		} else {
+			e.DBError(err)
+		}
 		service.ServerResponse(w, e)
 		return
 	}

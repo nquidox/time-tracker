@@ -13,5 +13,5 @@ func Init(d *gorm.DB) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Info("FullTask model init success")
+	log.Info("Task model init success")
 }

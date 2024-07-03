@@ -8,8 +8,8 @@ import (
 	"time_tracker/api/user"
 )
 
-func (t *FullTask) validateNewTask() error {
-	p, err := uuid.Parse(t.OwnerId.String())
+func (f *FullTask) validateNewTask() error {
+	p, err := uuid.Parse(f.OwnerId.String())
 	if err != nil {
 		return errors.New("incorrect user ID")
 	}
@@ -18,25 +18,20 @@ func (t *FullTask) validateNewTask() error {
 		return errors.New("owner ID is required")
 	}
 
-	var owner user.User
-	result := DB.Where("user_id = ?", t.OwnerId).First(&owner)
-
-	if result.Error != nil {
-		return result.Error
-	}
-	if result.RowsAffected == 0 {
-		return errors.New("task owner not found")
+	err = validateOwner(f.OwnerId)
+	if err != nil {
+		return err
 	}
 
-	if len(t.Title) == 0 {
+	if len(f.Title) == 0 {
 		return errors.New("title is required")
 	}
 
 	return nil
 }
 
-func (t *UpdateTask) validateOnUpdate() error {
-	if len(t.Title) == 0 {
+func (u *UpdateTask) validateOnUpdate() error {
+	if len(u.Title) == 0 {
 		return errors.New("title is required")
 	}
 	return nil
@@ -69,4 +64,13 @@ func filtersMap(queryParams url.Values) map[string]time.Time {
 	}
 
 	return filters
+}
+
+func validateOwner(id uuid.UUID) error {
+	var owner user.FullUser
+	err := DB.Where("user_id = ?", id).First(&owner).Error
+	if err != nil {
+		return err
+	}
+	return nil
 }

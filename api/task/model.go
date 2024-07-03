@@ -19,9 +19,9 @@ type FullTask struct {
 }
 
 type CreateTask struct {
-	OwnerId uuid.UUID `json:"owner_id" example:"00000000-0000-0000-0000-000000000000"`
-	Title   string    `json:"title" example:"New task title"`
-	Content string    `json:"content" example:"Task description"`
+	OwnerId uuid.UUID `json:"owner_id"`
+	Title   string    `json:"title"`
+	Content string    `json:"content"`
 }
 
 type UpdateTask struct {
@@ -43,26 +43,30 @@ type Summary struct {
 	Tasks         []OutputTask `json:"tasks"`
 }
 
-func (t *FullTask) Create() error {
-	err := DB.Create(t).Error
+func (f *FullTask) TableName() string {
+	return "tasks"
+}
+
+func (f *FullTask) Create() error {
+	err := DB.Create(f).Error
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (t *FullTask) ReadOne() error {
-	err := DB.Where("task_id = ?", t.TaskId).First(t).Error
+func (f *FullTask) ReadOne() error {
+	err := DB.Where("task_id = ?", f.TaskId).First(f).Error
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (t *FullTask) ReadMany(filters map[string]time.Time) ([]FullTask, error) {
+func (f *FullTask) ReadMany(filters map[string]time.Time) ([]FullTask, error) {
 	var tasks []FullTask
 	err := DB.
-		Where("owner_id = ?", t.OwnerId).
+		Where("owner_id = ?", f.OwnerId).
 		Where("finish_at BETWEEN ? and ?", filters["start_date"], filters["end_date"]).
 		Find(&tasks).Error
 	if err != nil {
@@ -71,8 +75,8 @@ func (t *FullTask) ReadMany(filters map[string]time.Time) ([]FullTask, error) {
 	return tasks, nil
 }
 
-func (t *FullTask) UpdateFull() error {
-	result := DB.Where("task_id = ?", t.TaskId).Updates(t)
+func (f *FullTask) UpdateFull() error {
+	result := DB.Where("task_id = ?", f.TaskId).Updates(f)
 
 	if result.Error != nil {
 		return result.Error
@@ -85,26 +89,26 @@ func (t *FullTask) UpdateFull() error {
 	return nil
 }
 
-func (t *UpdateTask) UpdatePart() error {
-	result := DB.Model(&FullTask{}).Where("task_id = ?", t.TaskId).Updates(t)
+func (u *UpdateTask) UpdatePart() error {
+	result := DB.Model(&FullTask{}).Where("task_id = ?", u.TaskId).Updates(u)
 	if result.Error != nil {
 		return result.Error
 	}
 	if result.RowsAffected == 0 {
-		return errors.New("task not found")
+		return errors.New("404")
 	}
 	return nil
 }
 
-func (t *FullTask) Delete() error {
-	result := DB.Where("task_id = ?", t.TaskId).Delete(t)
+func (f *FullTask) Delete() error {
+	result := DB.Where("task_id = ?", f.TaskId).Delete(f)
 
 	if result.Error != nil {
 		return result.Error
 	}
 
 	if result.RowsAffected == 0 {
-		return errors.New("task not found")
+		return errors.New("404")
 	}
 
 	return nil

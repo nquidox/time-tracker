@@ -31,7 +31,7 @@ func (e *ExternalUser) GetExternalData(passportSerie, passportNumber int) error 
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		return fmt.Errorf("External user data retrieval error: %s", response.Status)
+		return fmt.Errorf("%s", response.Status)
 	}
 
 	data, err := io.ReadAll(response.Body)

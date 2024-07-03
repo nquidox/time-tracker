@@ -16,6 +16,13 @@ func (e *ErrorResponse) Error400(err error) {
 	log.Error(err)
 }
 
+func (e *ErrorResponse) Error404() {
+	msg := "Not found"
+	e.Code = http.StatusNotFound
+	e.Message = msg
+	log.Error(msg)
+}
+
 func (e *ErrorResponse) Error500(err error) {
 	e.Code = http.StatusInternalServerError
 	e.Message = "Internal Server Error: " + err.Error()
@@ -58,10 +65,25 @@ func (e *ErrorResponse) DBError(err error) {
 	log.Error(err)
 }
 
-func (e *ErrorResponse) DBNotFound(err error) {
+func (e *ErrorResponse) DBExists() {
+	msg := "Already exists"
+	e.Code = http.StatusBadRequest
+	e.Message = msg
+	log.Error(msg)
+}
+
+func (e *ErrorResponse) DBPassportExists() {
+	msg := "Passport credentials already exist"
+	e.Code = http.StatusBadRequest
+	e.Message = msg
+	log.Error(msg)
+}
+
+func (e *ErrorResponse) DBTaskOwnerNotFound() {
+	msg := "Task owner not found"
 	e.Code = http.StatusNotFound
-	e.Message = "Record not found: " + err.Error()
-	log.Error(err)
+	e.Message = msg
+	log.Error(msg)
 }
 
 func (e *ErrorResponse) TaskNotStartedError() {
