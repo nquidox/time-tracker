@@ -12,6 +12,18 @@ import (
 	"time_tracker/api/user"
 )
 
+// CreateTaskHandler godoc
+//
+//	@Summary		Create task
+//	@Description	Create task for user
+//	@Tags			Task
+//	@Accept			json
+//	@Produce		json
+//	@Param			New	task		body	CreateTask	true	"Owner UUID and title are required"
+//	@Success		200	{object}	FullTask
+//	@Failure		400	{object}	service.ErrorResponse
+//	@Failure		500	{object}	service.ErrorResponse
+//	@Router			/task [post]
 func CreateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var e service.ErrorResponse
@@ -26,7 +38,7 @@ func CreateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	tsk := Task{TaskId: uuid.New()}
+	tsk := FullTask{TaskId: uuid.New()}
 
 	err = service.DeserializeJSON(data, &tsk)
 	if err != nil {
@@ -59,6 +71,18 @@ func CreateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	log.Info(msg)
 }
 
+// ReadOneTaskHandler godoc
+//
+//	@Summary		Get task
+//	@Description	Get task by task UUID
+//	@Tags			Task
+//	@Produce		json
+//	@Param			uuid	path		string	true	"Provide task's uuid"
+//	@Success		200		{object}	FullTask
+//	@Failure		400		{object}	service.ErrorResponse
+//	@Failure		404		{object}	service.ErrorResponse
+//	@Failure		500		{object}	service.ErrorResponse
+//	@Router			/task/{uuid} [get]
 func ReadOneTaskHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var e service.ErrorResponse
@@ -72,7 +96,7 @@ func ReadOneTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tsk := Task{TaskId: taskId}
+	tsk := FullTask{TaskId: taskId}
 	err = tsk.ReadOne()
 	if err != nil {
 		e.DBError(err)
@@ -84,6 +108,18 @@ func ReadOneTaskHandler(w http.ResponseWriter, r *http.Request) {
 	log.Info("Read one successfully")
 }
 
+// ReadManyTaskHandler godoc
+//
+//	@Summary		Summary
+//	@Description	Get tasks summary for user
+//	@Tags			Task
+//	@Produce		json
+//	@Param			user_uuid	path		string	true	"Provide user's uuid"
+//	@Success		200			{object}	Summary
+//	@Failure		400			{object}	service.ErrorResponse
+//	@Failure		404			{object}	service.ErrorResponse
+//	@Failure		500			{object}	service.ErrorResponse
+//	@Router			/task/{user_uuid} [get]
 func ReadManyTaskHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var e service.ErrorResponse
@@ -100,7 +136,7 @@ func ReadManyTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tsk := Task{OwnerId: userId}
+	tsk := FullTask{OwnerId: userId}
 
 	// для простоты выборка задач для расчета трудозатрат будет производиться по полю finish_at
 	// если требуется также учитывать промежуточное состояние, когда задача начата,
@@ -156,6 +192,20 @@ func ReadManyTaskHandler(w http.ResponseWriter, r *http.Request) {
 	log.Info("Read many successfully")
 }
 
+// UpdateTaskHandler godoc
+//
+//	@Summary		Update task
+//	@Description	Update task by UUID
+//	@Tags			Task
+//	@Accept			json
+//	@Produce		json
+//	@Param			uuid		path		string	true		"Provide task's uuid"
+//	@Param			UpdateTask	data		body	UpdateTask	true	"Partial update possible"
+//	@Success		200			{object}	service.OkResponse
+//	@Failure		400			{object}	service.ErrorResponse
+//	@Failure		404			{object}	service.ErrorResponse
+//	@Failure		500			{object}	service.ErrorResponse
+//	@Router			/task/{uuid} [put]
 func UpdateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var e service.ErrorResponse
@@ -210,6 +260,18 @@ func UpdateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	log.Info(msg)
 }
 
+// DeleteTaskHandler godoc
+//
+//	@Summary		Delete task
+//	@Description	Delete task by UUID
+//	@Tags			Task
+//	@Produce		json
+//	@Param			uuid	path		string	true	"Provide task's uuid"
+//	@Success		200		{object}	service.OkResponse
+//	@Failure		400		{object}	service.ErrorResponse
+//	@Failure		404		{object}	service.ErrorResponse
+//	@Failure		500		{object}	service.ErrorResponse
+//	@Router			/task/{uuid} [delete]
 func DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var e service.ErrorResponse
@@ -223,7 +285,7 @@ func DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tsk := Task{TaskId: taskId}
+	tsk := FullTask{TaskId: taskId}
 
 	err = tsk.Delete()
 	if err != nil {
@@ -242,6 +304,18 @@ func DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 	log.Info(msg)
 }
 
+// StartTaskHandler godoc
+//
+//	@Summary		Start task
+//	@Description	Start task by UUID
+//	@Tags			Task
+//	@Produce		json
+//	@Param			uuid	path		string	true	"Provide task's uuid"
+//	@Success		200		{object}	service.OkResponse
+//	@Failure		400		{object}	service.ErrorResponse
+//	@Failure		404		{object}	service.ErrorResponse
+//	@Failure		500		{object}	service.ErrorResponse
+//	@Router			/task/start/{uuid} [get]
 func StartTaskHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var e service.ErrorResponse
@@ -255,7 +329,7 @@ func StartTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tsk := Task{TaskId: taskId}
+	tsk := FullTask{TaskId: taskId}
 	err = tsk.ReadOne()
 	if err != nil {
 		e.DBError(err)
@@ -288,6 +362,18 @@ func StartTaskHandler(w http.ResponseWriter, r *http.Request) {
 	log.Info(msg)
 }
 
+// FinishTaskHandler godoc
+//
+//	@Summary		Finish task
+//	@Description	Finish task by UUID
+//	@Tags			Task
+//	@Produce		json
+//	@Param			uuid	path		string	true	"Provide task's uuid"
+//	@Success		200		{object}	service.OkResponse
+//	@Failure		400		{object}	service.ErrorResponse
+//	@Failure		404		{object}	service.ErrorResponse
+//	@Failure		500		{object}	service.ErrorResponse
+//	@Router			/task/finish/{uuid} [get]
 func FinishTaskHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var e service.ErrorResponse
@@ -301,7 +387,7 @@ func FinishTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tsk := Task{TaskId: taskId}
+	tsk := FullTask{TaskId: taskId}
 
 	err = tsk.ReadOne()
 	if err != nil {

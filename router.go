@@ -3,9 +3,11 @@ package main
 import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	httpSwagger "github.com/swaggo/http-swagger"
 	"net/http"
 	"time_tracker/api/task"
 	"time_tracker/api/user"
+	_ "time_tracker/docs"
 )
 
 type ApiServer struct {
@@ -23,6 +25,8 @@ func (a *ApiServer) Run() error {
 	router.HandleFunc("GET /api/v1", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "API is ready.")
 	})
+
+	router.HandleFunc("GET /docs/", httpSwagger.WrapHandler)
 
 	user.AddRoutes(router)
 	task.AddRoutes(router)

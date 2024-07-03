@@ -7,15 +7,21 @@ import (
 	"time"
 )
 
-type Task struct {
+type FullTask struct {
 	gorm.Model `json:"-"`
-	TaskId     uuid.UUID     `json:"task_id"`
-	OwnerId    uuid.UUID     `json:"owner_id"`
-	Title      string        `json:"title"`
-	Content    string        `json:"content"`
-	StartAt    time.Time     `json:"start_at"`
-	FinishAt   time.Time     `json:"end_at"`
-	Duration   time.Duration `json:"duration"`
+	TaskId     uuid.UUID     `json:"task_id" example:"00000000-0000-0000-0000-000000000000"`
+	OwnerId    uuid.UUID     `json:"owner_id" example:"00000000-0000-0000-0000-000000000000"`
+	Title      string        `json:"title" example:"Title"`
+	Content    string        `json:"content" example:"Description"`
+	StartAt    time.Time     `json:"start_at" example:"0001-01-01 00:00:00 +0000 UTC"`
+	FinishAt   time.Time     `json:"end_at" example:"0001-01-01 00:00:00 +0000 UTC"`
+	Duration   time.Duration `json:"duration" example:"0"`
+}
+
+type CreateTask struct {
+	OwnerId uuid.UUID `json:"owner_id" example:"00000000-0000-0000-0000-000000000000"`
+	Title   string    `json:"title" example:"New task title"`
+	Content string    `json:"content" example:"Task description"`
 }
 
 type UpdateTask struct {
@@ -37,7 +43,7 @@ type Summary struct {
 	Tasks         []OutputTask `json:"tasks"`
 }
 
-func (t *Task) Create() error {
+func (t *FullTask) Create() error {
 	err := DB.Create(t).Error
 	if err != nil {
 		return err
@@ -45,7 +51,7 @@ func (t *Task) Create() error {
 	return nil
 }
 
-func (t *Task) ReadOne() error {
+func (t *FullTask) ReadOne() error {
 	err := DB.Where("task_id = ?", t.TaskId).First(t).Error
 	if err != nil {
 		return err
@@ -53,8 +59,8 @@ func (t *Task) ReadOne() error {
 	return nil
 }
 
-func (t *Task) ReadMany(filters map[string]time.Time) ([]Task, error) {
-	var tasks []Task
+func (t *FullTask) ReadMany(filters map[string]time.Time) ([]FullTask, error) {
+	var tasks []FullTask
 	err := DB.
 		Where("owner_id = ?", t.OwnerId).
 		Where("finish_at BETWEEN ? and ?", filters["start_date"], filters["end_date"]).
@@ -65,7 +71,7 @@ func (t *Task) ReadMany(filters map[string]time.Time) ([]Task, error) {
 	return tasks, nil
 }
 
-func (t *Task) UpdateFull() error {
+func (t *FullTask) UpdateFull() error {
 	result := DB.Where("task_id = ?", t.TaskId).Updates(t)
 
 	if result.Error != nil {
@@ -80,7 +86,7 @@ func (t *Task) UpdateFull() error {
 }
 
 func (t *UpdateTask) UpdatePart() error {
-	result := DB.Model(&Task{}).Where("task_id = ?", t.TaskId).Updates(t)
+	result := DB.Model(&FullTask{}).Where("task_id = ?", t.TaskId).Updates(t)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -90,7 +96,7 @@ func (t *UpdateTask) UpdatePart() error {
 	return nil
 }
 
-func (t *Task) Delete() error {
+func (t *FullTask) Delete() error {
 	result := DB.Where("task_id = ?", t.TaskId).Delete(t)
 
 	if result.Error != nil {

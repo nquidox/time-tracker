@@ -58,6 +58,12 @@ func (e *ErrorResponse) DBError(err error) {
 	log.Error(err)
 }
 
+func (e *ErrorResponse) DBNotFound(err error) {
+	e.Code = http.StatusNotFound
+	e.Message = "Record not found: " + err.Error()
+	log.Error(err)
+}
+
 func (e *ErrorResponse) TaskNotStartedError() {
 	e.Code = http.StatusBadRequest
 	e.Message = "Task not started."

@@ -8,6 +8,15 @@ import (
 	"time_tracker/db"
 )
 
+// @title			Time Tracker
+// @version		1.0
+// @contact.name	Telegram
+// @contact.url	https://t.me/rekasawak
+// @license.name	MIT
+// @license.url	https://mit-license.org/
+//
+// @host			localhost:9000
+// @BasePath		/api/v1
 func main() {
 	c := config.New()
 

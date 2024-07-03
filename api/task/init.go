@@ -9,9 +9,9 @@ var DB *gorm.DB
 
 func Init(d *gorm.DB) {
 	DB = d //passing DB global var
-	err := DB.AutoMigrate(&Task{})
+	err := DB.AutoMigrate(&FullTask{})
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Info("Task model migrate successfully")
+	log.Info("FullTask model init success")
 }

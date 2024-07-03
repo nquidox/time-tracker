@@ -12,7 +12,7 @@ func AddRoutes(router *http.ServeMux) {
 	router.HandleFunc("PUT /api/v1/task/{uuid}", UpdateTaskHandler)
 	router.HandleFunc("DELETE /api/v1/task/{uuid}", DeleteTaskHandler)
 	router.HandleFunc("GET /api/v1/task/start/{uuid}", StartTaskHandler)
-	router.HandleFunc("GET /api/v1/task/stop/{uuid}", FinishTaskHandler)
+	router.HandleFunc("GET /api/v1/task/finish/{uuid}", FinishTaskHandler)
 }
 
 // для всех роутов предполагаем, что они доступны только пользователям

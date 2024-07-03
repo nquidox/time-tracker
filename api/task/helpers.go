@@ -8,7 +8,7 @@ import (
 	"time_tracker/api/user"
 )
 
-func (t *Task) validateNewTask() error {
+func (t *FullTask) validateNewTask() error {
 	p, err := uuid.Parse(t.OwnerId.String())
 	if err != nil {
 		return errors.New("incorrect user ID")
