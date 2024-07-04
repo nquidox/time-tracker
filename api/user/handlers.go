@@ -54,7 +54,6 @@ func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 	if exists(serie, number) != uuid.Nil {
 		e.DBExists()
 		service.ServerResponse(w, e)
-		log.Error("User already exists")
 		return
 	}
 
@@ -157,7 +156,7 @@ func ReadUserByIDHandler(w http.ResponseWriter, r *http.Request) {
 //	@Param			page			query		int		false	"Page number"
 //	@Param			perPage			query		int		false	"Records per page"
 //
-//	@Success		200				{object}	FullUser
+//	@Success		200				{array}		FullUser
 //	@Failure		400				{object}	service.ErrorResponse
 //	@Failure		404				{object}	service.ErrorResponse
 //	@Failure		500				{object}	service.ErrorResponse
@@ -201,7 +200,7 @@ func ReadManyHandler(w http.ResponseWriter, r *http.Request) {
 //	@Accept			json
 //	@Produce		json
 //	@Param			uuid	path		string	true		"Provide user's uuid"
-//	@Param			User	data		body	FullUser	true	"Passport serie and number are required. Partial update possible, empty fields will be ignored."
+//	@Param			User	data		body	UpdateUser	true	"Passport serie and number are required. Partial update possible, empty fields will be ignored."
 //	@Success		200		{object}	service.OkResponse
 //	@Failure		400		{object}	service.ErrorResponse
 //	@Failure		404		{object}	service.ErrorResponse
@@ -237,25 +236,33 @@ func UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pn := fmt.Sprintf("%s %s", strconv.Itoa(usr.PassportSerie), strconv.Itoa(usr.PassportNumber))
-	_, _, err = validatePassportNumber(pn)
-	if err != nil {
-		e.ValidationError(err)
-		service.ServerResponse(w, e)
-		return
-	}
+	if usr.PassportSerie != 0 || usr.PassportNumber != 0 {
+		log.Error("KEK")
+		pn := fmt.Sprintf("%s %s", strconv.Itoa(usr.PassportSerie), strconv.Itoa(usr.PassportNumber))
 
-	id := exists(usr.PassportSerie, usr.PassportNumber)
-	if id != usr.UserId && id != uuid.Nil {
-		log.Error(usr.UserId)
-		e.DBPassportExists()
-		service.ServerResponse(w, e)
-		return
+		_, _, err = validatePassportNumber(pn)
+		if err != nil {
+			e.ValidationError(err)
+			service.ServerResponse(w, e)
+			return
+		}
+
+		id := exists(usr.PassportSerie, usr.PassportNumber)
+		if id != usr.UserId && id != uuid.Nil {
+			log.Error(usr.UserId)
+			e.DBPassportExists()
+			service.ServerResponse(w, e)
+			return
+		}
 	}
 
 	err = usr.Update()
 	if err != nil {
-		e.DBError(err)
+		if err.Error() == "404" {
+			e.Error404()
+		} else {
+			e.DBError(err)
+		}
 		service.ServerResponse(w, e)
 		return
 	}

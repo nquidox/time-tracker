@@ -4,19 +4,18 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
-	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
 type FullUser struct {
 	gorm.Model     `json:"-"`
-	PassportSerie  int       `json:"passportSerie" `
-	PassportNumber int       `json:"passportNumber"`
-	Name           string    `json:"name"`
-	Surname        string    `json:"surname"`
-	Patronymic     string    `json:"patronymic"`
-	Address        string    `json:"address"`
-	UserId         uuid.UUID `json:"userId"`
+	PassportSerie  int       `json:"passportSerie"  extensions:"x-order=1"`
+	PassportNumber int       `json:"passportNumber" extensions:"x-order=2"`
+	Name           string    `json:"name" extensions:"x-order=3"`
+	Surname        string    `json:"surname" extensions:"x-order=4"`
+	Patronymic     string    `json:"patronymic" extensions:"x-order=5"`
+	Address        string    `json:"address" extensions:"x-order=6"`
+	UserId         uuid.UUID `json:"userId" extensions:"x-order=7"`
 }
 
 type NewUser struct {
@@ -24,12 +23,12 @@ type NewUser struct {
 }
 
 type UpdateUser struct {
-	PassportSerie  int       `json:"passportSerie" `
-	PassportNumber int       `json:"passportNumber"`
-	Name           string    `json:"name"`
-	Surname        string    `json:"surname"`
-	Patronymic     string    `json:"patronymic"`
-	Address        string    `json:"address"`
+	PassportSerie  int       `json:"passportSerie" extensions:"x-order=1"`
+	PassportNumber int       `json:"passportNumber" extensions:"x-order=2"`
+	Name           string    `json:"name" extensions:"x-order=3"`
+	Surname        string    `json:"surname" extensions:"x-order=4"`
+	Patronymic     string    `json:"patronymic" extensions:"x-order=5"`
+	Address        string    `json:"address" extensions:"x-order=6"`
 	UserId         uuid.UUID `json:"-"`
 }
 
@@ -86,7 +85,7 @@ func (u *UpdateUser) Update() error {
 	}
 
 	if result.RowsAffected == 0 {
-		return errors.New("user not found")
+		return errors.New("404")
 	}
 
 	return nil
@@ -109,10 +108,8 @@ func exists(serie, number int) uuid.UUID {
 	var usr FullUser
 	result := DB.Where("passport_serie = ? AND passport_number = ?", serie, number).First(&usr)
 	if result.Error != nil {
-		log.Error(usr.UserId)
-		return usr.UserId
-	} else {
-		log.Error(uuid.Nil)
 		return uuid.Nil
+	} else {
+		return usr.UserId
 	}
 }

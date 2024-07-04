@@ -32,7 +32,7 @@ func (f *FullTask) validateNewTask() error {
 
 func (u *UpdateTask) validateOnUpdate() error {
 	if len(u.Title) == 0 {
-		return errors.New("title is required")
+		return errors.New("title can't be ommited or be blank")
 	}
 	return nil
 }

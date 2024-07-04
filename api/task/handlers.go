@@ -172,7 +172,7 @@ func ReadManyTaskHandler(w http.ResponseWriter, r *http.Request) {
 //	@Param			user_uuid	path		string	true	"Provide user's uuid"
 //	@Param			start_date	query		string	false	"Start of period"
 //	@Param			end_date	query		string	false	"End  of period"
-//	@Success		200			{object}	Summary
+//	@Success		200			{object}	Summary{tasks=[]OutputTask}
 //	@Failure		400			{object}	service.ErrorResponse
 //	@Failure		404			{object}	service.ErrorResponse
 //	@Failure		500			{object}	service.ErrorResponse
@@ -215,18 +215,19 @@ func SummaryHandler(w http.ResponseWriter, r *http.Request) {
 
 	sumDuration := time.Duration(0)
 	for _, t := range tasks {
-		sumDuration += t.Duration
+		sumDuration += time.Duration(t.Duration)
 	}
 
 	var outputList []OutputTask
 	for _, t := range tasks {
+		duration := time.Duration(t.Duration)
 		outputList = append(outputList, OutputTask{
 			Title:   t.Title,
 			Content: t.Content,
 			Duration: fmt.Sprintf("%02d:%02d:%02d",
-				int(t.Duration.Hours()),
-				int(t.Duration.Minutes())%60,
-				int(t.Duration.Seconds())%60),
+				int(duration.Hours()),
+				int(duration.Minutes())%60,
+				int(duration.Seconds())%60),
 		})
 	}
 
@@ -410,6 +411,11 @@ func StartTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !tsk.StartAt.IsZero() {
+		if !tsk.FinishAt.IsZero() {
+			e.TaskIsAlreadyFinishedError()
+			service.ServerResponse(w, e)
+			return
+		}
 		e.TaskIsAlreadyStartedError()
 		service.ServerResponse(w, e)
 		return
@@ -487,7 +493,8 @@ func FinishTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tsk.FinishAt = time.Now()
-	tsk.Duration = tsk.FinishAt.Sub(tsk.StartAt)
+	duration := tsk.FinishAt.Sub(tsk.StartAt)
+	tsk.Duration = int64(duration)
 
 	err = tsk.UpdateFull()
 	if err != nil {
@@ -503,9 +510,9 @@ func FinishTaskHandler(w http.ResponseWriter, r *http.Request) {
 		Message: msg,
 		Data: fmt.Sprintf("Finished at: %s, Duration: %02d:%02d:%02d",
 			tsk.FinishAt.Format("15:04:05 02-01-2006"),
-			int(tsk.Duration.Hours()),
-			int(tsk.Duration.Minutes())%60,
-			int(tsk.Duration.Seconds())%60,
+			int(duration.Hours()),
+			int(duration.Minutes())%60,
+			int(duration.Seconds())%60,
 		),
 	})
 	log.Info(msg)

@@ -9,38 +9,38 @@ import (
 
 type FullTask struct {
 	gorm.Model `json:"-"`
-	TaskId     uuid.UUID     `json:"task_id" example:"00000000-0000-0000-0000-000000000000"`
-	OwnerId    uuid.UUID     `json:"owner_id" example:"00000000-0000-0000-0000-000000000000"`
-	Title      string        `json:"title" example:"Title"`
-	Content    string        `json:"content" example:"Description"`
-	StartAt    time.Time     `json:"start_at" example:"0001-01-01 00:00:00 +0000 UTC"`
-	FinishAt   time.Time     `json:"end_at" example:"0001-01-01 00:00:00 +0000 UTC"`
-	Duration   time.Duration `json:"duration" example:"0"`
+	TaskId     uuid.UUID `json:"task_id" example:"00000000-0000-0000-0000-000000000000" extensions:"x-order=1"`
+	OwnerId    uuid.UUID `json:"owner_id" example:"00000000-0000-0000-0000-000000000000" extensions:"x-order=2"`
+	Title      string    `json:"title" example:"Title" extensions:"x-order=3"`
+	Content    string    `json:"content" example:"Description" extensions:"x-order=4"`
+	StartAt    time.Time `json:"start_at" example:"0001-01-01 00:00:00 +0000 UTC" extensions:"x-order=5"`
+	FinishAt   time.Time `json:"end_at" example:"0001-01-01 00:00:00 +0000 UTC" extensions:"x-order=6"`
+	Duration   int64     `json:"duration" example:"0" extensions:"x-order=7"`
 }
 
 type CreateTask struct {
-	OwnerId uuid.UUID `json:"owner_id"`
-	Title   string    `json:"title"`
-	Content string    `json:"content"`
+	OwnerId uuid.UUID `json:"owner_id" extensions:"x-order=1"`
+	Title   string    `json:"title" extensions:"x-order=2"`
+	Content string    `json:"content" extensions:"x-order=3"`
 }
 
 type UpdateTask struct {
 	TaskId  uuid.UUID `json:"-"`
-	Title   string    `json:"title"`
-	Content string    `json:"content"`
+	Title   string    `json:"title" extensions:"x-order=1"`
+	Content string    `json:"content" extensions:"x-order=2"`
 }
 
 type OutputTask struct {
-	Title    string `json:"title"`
-	Content  string `json:"content"`
-	Duration string `json:"duration"`
+	Title    string `json:"title" extensions:"x-order=1"`
+	Content  string `json:"content" extensions:"x-order=2"`
+	Duration string `json:"duration" extensions:"x-order=3"`
 }
 
 type Summary struct {
-	Name          string       `json:"name"`
-	Surname       string       `json:"surname"`
-	TasksDuration string       `json:"tasks_duration"`
-	Tasks         []OutputTask `json:"tasks"`
+	Name          string       `json:"name" extensions:"x-order=1"`
+	Surname       string       `json:"surname" extensions:"x-order=2"`
+	TasksDuration string       `json:"tasks_duration" extensions:"x-order=3"`
+	Tasks         []OutputTask `json:"tasks" extensions:"x-order=4"`
 }
 
 func (f *FullTask) TableName() string {
